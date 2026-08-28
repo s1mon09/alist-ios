@@ -526,6 +526,8 @@ func compareVersions(_ v1: String, _ v2: String) -> ComparisonResult {
   - 文本/代码（等宽字体，支持 GB18030 编码）
   - Office 文档（QuickLook 预览）
   - Markdown 渲染（MarkdownUI）
+  - CSV/TSV 表格预览（支持引号转义、斑马纹表格）
+  - JSON 自动美化（排序键 + 缩进格式化）
 - **搜索**：全站文件搜索
 - **归档**：压缩包列表查看、解压到指定目录
 
@@ -547,6 +549,7 @@ func compareVersions(_ v1: String, _ v2: String) -> ComparisonResult {
 - 支持 aria2、qBittorrent、Transmission、115、PikPak、Thunder 等工具
 - 多链接批量下载
 - 下载完成后删除源文件
+- **分享扩展**：在 Safari 等任意 App 的分享菜单中直接把链接发送到 Alist 离线下载（通过 App Group 共享登录态）
 
 ### 标签系统
 - 标签列表查看
@@ -586,14 +589,27 @@ func compareVersions(_ v1: String, _ v2: String) -> ComparisonResult {
 - App 评价提醒（累计启动 10 次后）
 - Toast 全局提示系统
 
+### 桌面小组件（WidgetKit）
+- **下载进度**：实时查看后台下载任务的进度与数量，点击直达下载管理（小/中尺寸）
+- **服务器状态**：快速查看 Alist 服务器是否在线及版本号
+- 通过 App Group（`group.com.s1mon09.alist`）与主 App 共享数据
+
+### URL Scheme
+- `alistios://open` — 打开 App
+- `alistios://downloads` — 直达下载管理页（供小组件/快捷指令使用）
+
 ---
 
 ## 项目结构
 
 ```
 alist-ios/
-├── project.yml                    # XcodeGen 工程配置
+├── project.yml                    # XcodeGen 工程配置（含主 App + 分享扩展 + 小组件三个 target）
 ├── README.md                      # 本文档
+├── ShareExtension/                # 分享扩展（链接 → 离线下载）
+│   └── ShareViewController.swift
+├── Widget/                        # 桌面小组件（下载进度 / 服务器状态）
+│   └── AlistWidgetBundle.swift
 └── Alist/
     ├── AlistApp.swift             # App 入口 + AppDelegate（后台 URLSession）
     ├── Info.plist                 # 配置（ATS/后台模式/权限）

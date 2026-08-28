@@ -145,6 +145,10 @@ final class DownloadManager: NSObject, ObservableObject {
     }
 
     private let archiveURL: URL = {
+        // 优先写入 App Group 共享容器，供桌面小组件读取下载进度
+        if let groupURL = AppGroup.downloadsURL {
+            return groupURL
+        }
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("downloads.json")

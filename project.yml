@@ -49,6 +49,7 @@ targets:
       base:
         PRODUCT_NAME: Alist
         PRODUCT_BUNDLE_IDENTIFIER: com.s1mon09.alist
+        CODE_SIGN_ENTITLEMENTS: Alist/Alist.entitlements
     sources:
       - path: Alist
     dependencies:
@@ -57,12 +58,18 @@ targets:
       - package: CodeScanner
       - package: KeychainAccess
       - package: Alamofire
+      - target: AlistShareExtension
+      - target: AlistWidget
     info:
       path: Alist/Info.plist
       properties:
         CFBundleDisplayName: Alist
         CFBundleShortVersionString: "1.0.0"
         CFBundleVersion: "1"
+        CFBundleURLTypes:
+          - CFBundleURLName: com.s1mon09.alist
+            CFBundleURLSchemes:
+              - alistios
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
           NSAllowsLocalNetworking: true
@@ -75,3 +82,42 @@ targets:
           - com.alist.refresh
           - com.alist.upload
           - com.alist.download
+  AlistShareExtension:
+    type: app-extension
+    platform: iOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.s1mon09.alist.ShareExtension
+        PRODUCT_NAME: AlistShareExtension
+        CODE_SIGN_ENTITLEMENTS: ShareExtension/ShareExtension.entitlements
+        SKIP_INSTALL: YES
+    sources:
+      - path: ShareExtension
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Alist
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsWebPageWithMaxCount: 1
+  AlistWidget:
+    type: app-extension
+    platform: iOS
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.s1mon09.alist.AlistWidget
+        PRODUCT_NAME: AlistWidget
+        CODE_SIGN_ENTITLEMENTS: Widget/AlistWidget.entitlements
+        SKIP_INSTALL: YES
+    sources:
+      - path: Widget
+    info:
+      path: Widget/Info.plist
+      properties:
+        CFBundleDisplayName: Alist
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension

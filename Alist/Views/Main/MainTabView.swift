@@ -68,5 +68,11 @@ struct MainTabView: View {
         .sheet(isPresented: $showDownloads) {
             DownloadsView()
         }
+        // 桌面小组件 / 分享扩展通过 alistios:// URL Scheme 唤起
+        .onOpenURL { url in
+            if url.host == "downloads" {
+                showDownloads = true
+            }
+        }
     }
 }

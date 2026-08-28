@@ -670,13 +670,14 @@ struct PDFKitView: UIViewRepresentable {
     func updateUIView(_ uiView: PDFView, context: Context) {}
 }
 
-// MARK: - 文本预览（增大限制/行号/编码检测/搜索）
+// MARK: - 文本预览（增大限制/行号/编码检测/搜索/CSV表格/JSON美化）
 struct TextPreviewView: View {
     let url: URL?
     let fileName: String
     @State private var content: String = ""
     @State private var isLoading = true
     @State private var isMarkdown = false
+    @State private var isCSV = false
     @State private var loadError: String?
     @State private var searchText: String = ""
     @State private var showSearch = false
@@ -698,6 +699,8 @@ struct TextPreviewView: View {
                 }
                 .padding()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if isCSV {
+                CSVTableView(content: content, fileName: fileName)
             } else if isMarkdown {
                 ScrollView {
                     Markdown(content)
@@ -762,15 +765,29 @@ struct TextPreviewView: View {
             let truncatedData = data.count > maxBytes ? Data(data.prefix(maxBytes)) : data
             let isOverLimit = data.count > maxBytes
             let name = fileName
-            // 多编码尝试移到后台线程，避免主线程多次全量扫描卡顿
-            let decoded = await Task.detached(priority: .userInitiated) { () -> String in
-                String(data: truncatedData, encoding: .utf8)
+            // 多编码尝试/JSON美化移到后台线程，避免主线程全量扫描卡顿
+            let result = await Task.detached(priority: .userInitiated) { () -> (String, Bool) in
+                let lower = name.lowercased()
+                // JSON 自动美化
+                if lower.hasSuffix(".json"),
+                   let obj = try? JSONSerialization.jsonObject(with: truncatedData, options: [.fragmentsAllowed]),
+                   let pretty = try? JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed]),
+                   let str = String(data: pretty, encoding: .utf8) {
+                    return (str, false)
+                }
+                let content = String(data: truncatedData, encoding: .utf8)
                     ?? String(data: truncatedData, encoding: .gb_18030_2000)
                     ?? String(data: truncatedData, encoding: .unicode)
                     ?? String(data: truncatedData, encoding: .ascii)
                     ?? "无法解码文件内容"
+                // CSV/TSV 表格
+                if lower.hasSuffix(".csv") || lower.hasSuffix(".tsv") {
+                    return (content, true)
+                }
+                return (content, false)
             }.value
-            content = decoded
+            content = result.0
+            isCSV = result.1
             if isOverLimit {
                 content += "\n\n... 文件较大,已截断显示前 5MB ..."
             }
@@ -780,6 +797,94 @@ struct TextPreviewView: View {
             loadError = "加载失败: \(error.localizedDescription)"
         }
         isLoading = false
+    }
+}
+
+// MARK: - CSV/TSV 表格预览
+struct CSVTableView: View {
+    let content: String
+    let fileName: String
+
+    private var separator: Character {
+        fileName.lowercased().hasSuffix(".tsv") ? "\t" : ","
+    }
+
+    /// 解析 CSV（支持引号包裹的字段与转义），限制行数避免大文件卡顿
+    private var rows: [[String]] {
+        let maxRows = 500
+        var result: [[String]] = []
+        var currentRow: [String] = []
+        var currentField = ""
+        var inQuotes = false
+
+        func endField() {
+            currentRow.append(currentField)
+            currentField = ""
+        }
+        func endRow() {
+            endField()
+            result.append(currentRow)
+            currentRow = []
+        }
+
+        for ch in content {
+            if result.count >= maxRows { break }
+            if inQuotes {
+                if ch == "\"" {
+                    inQuotes = false
+                } else {
+                    currentField.append(ch)
+                }
+            } else if ch == "\"" {
+                inQuotes = true
+            } else if ch == separator {
+                endField()
+            } else if ch == "\n" {
+                endRow()
+            } else if ch == "\r" {
+                continue
+            } else {
+                currentField.append(ch)
+            }
+        }
+        if !currentField.isEmpty || !currentRow.isEmpty {
+            if result.count < maxRows { endRow() }
+        }
+        return result
+    }
+
+    var body: some View {
+        let data = rows
+        return ScrollView([.vertical, .horizontal]) {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(data.enumerated()), id: \.offset) { idx, row in
+                    HStack(alignment: .top, spacing: 0) {
+                        ForEach(Array(row.prefix(30).enumerated()), id: \.offset) { _, cell in
+                            Text(cell.isEmpty ? " " : cell)
+                                .font(.system(.caption, design: .monospaced))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 5)
+                                .frame(minWidth: 60, maxWidth: 220, alignment: .leading)
+                                .background(headerBackground(row: idx))
+                        }
+                    }
+                }
+                if content.split(separator: "\n", omittingEmptySubsequences: false).count > data.count {
+                    Text("... 仅显示前 \(data.count) 行 ...")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(8)
+                }
+            }
+        }
+        .background(Color(.systemBackground))
+    }
+
+    private func headerBackground(row idx: Int) -> Color {
+        if idx == 0 { return Color(.tertiarySystemFill) }
+        return idx % 2 == 1 ? Color(.secondarySystemBackground) : Color(.systemBackground)
     }
 }
 

@@ -25,12 +25,16 @@ final class ServerConfig {
         lock.lock()
         defer { lock.unlock() }
         _baseURL = baseURL.trimmedURL
+        // 同步到 App Group，供分享扩展与小组件读取
+        AppGroup.sync(baseURL: _baseURL, token: _token)
     }
 
     func update(token: String) {
         lock.lock()
         defer { lock.unlock() }
         _token = token
+        // 同步到 App Group，供分享扩展与小组件读取
+        AppGroup.sync(baseURL: _baseURL, token: _token)
     }
 
     /// 完整 API URL
