@@ -66,6 +66,7 @@ targets:
         CFBundleDisplayName: Alist
         CFBundleShortVersionString: "1.0.0"
         CFBundleVersion: "1"
+        UILaunchScreen: {}
         CFBundleURLTypes:
           - CFBundleURLName: com.s1mon09.alist
             CFBundleURLSchemes:
