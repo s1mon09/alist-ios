@@ -145,7 +145,7 @@ class ShareViewController: UIViewController {
             showNoURL()
             return
         }
-        let providers = items.flatMap { $0.attachments as? [NSItemProvider] ?? [] }
+        let providers = items.flatMap { $0.attachments ?? [] }
 
         // 优先 public.url
         for provider in providers where provider.hasItemConformingToTypeIdentifier("public.url") {
@@ -212,7 +212,7 @@ class ShareViewController: UIViewController {
 
         var path = pathField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if path.isEmpty { path = "/" }
-        let tool = toolField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "aria2"
+        var tool = toolField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "aria2"
         if tool.isEmpty { tool = "aria2" }
 
         // 记住本次设置
